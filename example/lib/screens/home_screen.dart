@@ -19,6 +19,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   bool isImage = true;
 
   InferenceScore? score;
+  List<InferenceScore?>? videoScores;
 
   @override
   void initState() {
@@ -46,8 +47,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       if (isImage) {
         score = await helper?.inferenceImage(File(mediaPath!));
       } else {
-        //TODO: Handle video inference result list
-        await helper?.inferenceVideo(File(mediaPath!));
+        videoScores = await helper?.inferenceVideo(File(mediaPath!));
       }
       setState(() {});
     }
