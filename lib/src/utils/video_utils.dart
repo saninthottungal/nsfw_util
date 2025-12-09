@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:video_compress/video_compress.dart';
-import 'package:video_player/video_player.dart';
 
 class VideoUtils {
   const VideoUtils._();
@@ -11,10 +10,10 @@ class VideoUtils {
     int numberOfFrames = 5,
   }) async {
     final List<File> frames = [];
-    final controller = VideoPlayerController.file(File(videoPath));
-    await controller.initialize();
 
-    final dur = controller.value.duration.inMilliseconds;
+    final info = await VideoCompress.getMediaInfo(videoPath);
+
+    final dur = info.duration?.toDouble() ?? 1000;
     final interval = dur / numberOfFrames;
 
     for (int i = 0; i < numberOfFrames; i++) {
@@ -25,8 +24,6 @@ class VideoUtils {
       );
       frames.add(frame);
     }
-
-    await controller.dispose();
 
     return frames;
   }
