@@ -173,14 +173,14 @@ class NSFWUtil {
   ///
   /// Returns a list of scores, one for each frame sampled.
   Future<List<InferenceScore?>> inferenceVideo(
-    String videoPath, {
+    File file, {
     int numberOfFrames = 5,
   }) async {
     log(
-      'NSFWUtil: Starting inferenceVideo for path: $videoPath with $numberOfFrames frames.',
+      'NSFWUtil: Starting inferenceVideo for path: ${file.path} with $numberOfFrames frames.',
     );
     final videoFrames = await VideoUtils.getVideoFrames(
-      videoPath,
+      file.path,
       numberOfFrames: numberOfFrames,
     );
     log('NSFWUtil: Extracted ${videoFrames.length} frames.');
