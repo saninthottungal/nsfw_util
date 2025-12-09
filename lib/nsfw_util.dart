@@ -120,8 +120,14 @@ class NSFWUtil {
     return score;
   }
 
-  Future<List<InferenceScore?>> inferenceVideo(String videoPath) async {
-    final videoFrames = await VideoUtils.getVideoFrames(videoPath);
+  Future<List<InferenceScore?>> inferenceVideo(
+    String videoPath, {
+    int numberOfFrames = 5,
+  }) async {
+    final videoFrames = await VideoUtils.getVideoFrames(
+      videoPath,
+      numberOfFrames: numberOfFrames,
+    );
 
     final List<InferenceScore?> scores = [];
 
