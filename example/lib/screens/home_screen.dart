@@ -97,37 +97,74 @@ class _HomeWidgetState extends State<HomeWidget> {
                 ),
               ],
             ),
-            const Divider(color: Colors.black),
-            if (mediaPath != null && isImage) Image.file(File(mediaPath!)),
-            if (mediaPath != null && !isImage)
-              _VideoPreview(mediaPath: mediaPath!),
-            if (mediaPath == null)
-              const Text(
-                "Take a photo or choose one from the gallery to "
-                "inference.",
-              ),
 
-            //* Score
-            if (score != null) ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: score?.isNsfw == true ? Colors.red : Colors.white,
-                child: Text("NSFW: ${score?.nsfwScore.toStringAsFixed(2)}"),
+            if (isImage) ...[
+              _ContentView(score),
+            ] else if (videoScores case final scores?) ...[
+              if (mediaPath != null) _VideoPreview(mediaPath: mediaPath!),
+              SizedBox(
+                height: MediaQuery.of(context).size.height,
+                child: PageView.builder(
+                  itemCount: scores.length,
+                  itemBuilder: (context, index) {
+                    final score = scores[index];
+
+                    return _ContentView(score);
+                  },
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: score?.isNsfw == false ? Colors.green : Colors.white,
-                child: Text("Safe: ${score?.safeScore.toStringAsFixed(2)}"),
-              ),
-              const SizedBox(height: 8),
-              for (final label
-                  in (score?.labelScores.entries ??
-                      <MapEntry<String, double>>[]))
-                Text("${label.key}: ${label.value.toStringAsFixed(2)}"),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ContentView extends StatelessWidget {
+  const _ContentView(this.score);
+
+  final InferenceScore? score;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaPath = score?.frame.path;
+
+    return Column(
+      children: [
+        const Divider(color: Colors.black),
+        if (mediaPath != null)
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.heightOf(context) * 0.5,
+            ),
+            child: Image.file(File(mediaPath)),
+          ),
+
+        if (mediaPath == null)
+          const Text(
+            "Take a photo or choose one from the gallery to "
+            "inference.",
+          ),
+
+        //* Score
+        if (score != null) ...[
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: score?.isNsfw == true ? Colors.red : Colors.white,
+            child: Text("NSFW: ${score?.nsfwScore.toStringAsFixed(2)}"),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: score?.isNsfw == false ? Colors.green : Colors.white,
+            child: Text("Safe: ${score?.safeScore.toStringAsFixed(2)}"),
+          ),
+          const SizedBox(height: 8),
+          for (final label
+              in (score?.labelScores.entries ?? <MapEntry<String, double>>[]))
+            Text("${label.key}: ${label.value.toStringAsFixed(2)}"),
+        ],
+      ],
     );
   }
 }
@@ -152,6 +189,7 @@ class __VideoPreviewState extends State<_VideoPreview> {
       setState(() {});
       controller?.play();
       controller?.setLooping(true);
+      controller?.setVolume(0);
     });
   }
 
