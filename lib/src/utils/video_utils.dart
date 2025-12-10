@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:video_compress/video_compress.dart';
+import 'package:video_snapshot_generator/video_snapshot_generator.dart';
 
 class VideoUtils {
   const VideoUtils._();
@@ -9,22 +10,21 @@ class VideoUtils {
     String videoPath, {
     int numberOfFrames = 5,
   }) async {
-    final List<File> frames = [];
-
     final info = await VideoCompress.getMediaInfo(videoPath);
 
     final dur = info.duration?.toDouble() ?? 1000;
     final interval = dur / numberOfFrames;
 
-    for (int i = 0; i < numberOfFrames; i++) {
-      final frame = await VideoCompress.getFileThumbnail(
-        videoPath,
-        quality: 50,
-        position: (i * interval).toInt(),
-      );
-      frames.add(frame);
-    }
+    final positions = List.generate(
+      numberOfFrames,
+      (index) => (index * interval).toInt(),
+    );
 
-    return frames;
+    final results = await VideoSnapshotGenerator.generateMultipleThumbnails(
+      videoPath: videoPath,
+      timePositions: positions,
+      options: ThumbnailOptions(videoPath: videoPath, quality: 50),
+    );
+    return results.map((e) => File(e.path)).toList();
   }
 }
