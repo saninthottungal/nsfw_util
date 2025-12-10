@@ -8,7 +8,7 @@ class VideoUtils {
 
   static Future<List<File>> getVideoFrames(
     String videoPath, {
-    int numberOfFrames = 5,
+    required numberOfFrames,
   }) async {
     final info = await VideoCompress.getMediaInfo(videoPath);
 
