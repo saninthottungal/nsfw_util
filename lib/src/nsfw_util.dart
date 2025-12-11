@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -23,48 +22,50 @@ class NSFWUtil {
   late final List<String> _labels;
 
   Future<void> _loadModel() async {
-    log('NSFWUtil: Starting _loadModel...');
+    debugPrint('NSFWUtil: Starting _loadModel...');
     final options = InterpreterOptions();
 
     if (Platform.isAndroid) {
       options.addDelegate(XNNPackDelegate());
-      log('NSFWUtil: Added XNNPackDelegate for Android.');
+      debugPrint('NSFWUtil: Added XNNPackDelegate for Android.');
     }
 
     if (Platform.isIOS) {
       options.addDelegate(GpuDelegate());
-      log('NSFWUtil: Added GpuDelegate for iOS.');
+      debugPrint('NSFWUtil: Added GpuDelegate for iOS.');
     }
 
     _interpreter = await Interpreter.fromAsset(Assets.model, options: options);
-    log('NSFWUtil: Model loaded from asset: ${Assets.model}');
+    debugPrint('NSFWUtil: Model loaded from asset: ${Assets.model}');
 
     _inputTensor = _interpreter.getInputTensors().first;
     _outputTensor = _interpreter.getOutputTensors().first;
-    log(
+    debugPrint(
       'NSFWUtil: Input tensor shape: ${_inputTensor.shape}, Output tensor shape: ${_outputTensor.shape}',
     );
-    log('NSFWUtil: _loadModel completed.');
+    debugPrint('NSFWUtil: _loadModel completed.');
   }
 
   Future<void> _loadLables() async {
-    log('NSFWUtil: Starting _loadLables...');
+    debugPrint('NSFWUtil: Starting _loadLables...');
     final labels = await rootBundle.loadString(Assets.labels);
     _labels = labels.split('\n');
-    log('NSFWUtil: Labels loaded. Count: ${_labels.length}');
-    log('NSFWUtil: _loadLables completed.');
+    debugPrint('NSFWUtil: Labels loaded. Count: ${_labels.length}');
+    debugPrint('NSFWUtil: _loadLables completed.');
   }
 
   InferenceScore? _inferenceImage(({File file, List<String> labels}) args) {
-    log('NSFWUtil: Starting _inferenceImage for file: ${args.file.path}');
+    debugPrint(
+      'NSFWUtil: Starting _inferenceImage for file: ${args.file.path}',
+    );
     final imageBytes = args.file.readAsBytesSync();
-    log('NSFWUtil: Read image bytes.');
+    debugPrint('NSFWUtil: Read image bytes.');
     final image = decodeImage(imageBytes);
     if (image == null) {
-      log('NSFWUtil: Failed to decode image.');
+      debugPrint('NSFWUtil: Failed to decode image.');
       return null;
     }
-    log(
+    debugPrint(
       'NSFWUtil: Image decoded. Original size: ${image.width}x${image.height}',
     );
 
@@ -73,7 +74,7 @@ class NSFWUtil {
       inputShape: _inputTensor.shape,
       outputShape: _outputTensor.shape,
     );
-    log('NSFWUtil: InferenceModel created.');
+    debugPrint('NSFWUtil: InferenceModel created.');
 
     final img = model.image;
 
@@ -83,7 +84,7 @@ class NSFWUtil {
       width: model.inputShape[1],
       height: model.inputShape[2],
     );
-    log(
+    debugPrint(
       'NSFWUtil: Image resized to input dimensions: ${imageInput.width}x${imageInput.height}',
     );
 
@@ -96,7 +97,7 @@ class NSFWUtil {
         return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
       }),
     );
-    log('NSFWUtil: Image converted to normalized float matrix.');
+    debugPrint('NSFWUtil: Image converted to normalized float matrix.');
 
     // Input tensor: [1, 224, 224, 3]
     final input = [normalizedInput];
@@ -104,13 +105,13 @@ class NSFWUtil {
     // Output tensor: [1, 5]
     final output = [List<double>.filled(model.outputShape[1], 0)];
 
-    log('NSFWUtil: Running interpreter...');
+    debugPrint('NSFWUtil: Running interpreter...');
     _interpreter.run(input, output);
-    log('NSFWUtil: Interpreter run completed.');
+    debugPrint('NSFWUtil: Interpreter run completed.');
 
     // Get the array of 5 probabilities
     final result5Class = List<double>.from(output.first);
-    log('NSFWUtil: Raw output probabilities: $result5Class');
+    debugPrint('NSFWUtil: Raw output probabilities: $result5Class');
 
     double nsfwScore = 0.0;
     // Indices for: hentai (1), porn (3), sexy (4)
@@ -122,7 +123,7 @@ class NSFWUtil {
         nsfwScore += result5Class[index];
       }
     }
-    log(
+    debugPrint(
       'NSFWUtil: NSFW score (sum of indices $nsfwIndices) calculated: $nsfwScore',
     );
 
@@ -130,14 +131,14 @@ class NSFWUtil {
     for (int i = 0; i < result5Class.length; i++) {
       labelScores[args.labels[i]] = result5Class[i];
     }
-    log('NSFWUtil: Label scores mapped: $labelScores');
+    debugPrint('NSFWUtil: Label scores mapped: $labelScores');
 
     // 2. The SAFE score is the sum of the remaining classes (drawings and neutral)
     // Calculated as 1.0 minus the summed NSFW score.
     final double safeScore = 1.0 - nsfwScore;
-    log('NSFWUtil: Safe score calculated: $safeScore');
+    debugPrint('NSFWUtil: Safe score calculated: $safeScore');
 
-    log('NSFWUtil: _inferenceImage finished.');
+    debugPrint('NSFWUtil: _inferenceImage finished.');
     return InferenceScore(
       nsfwScore: nsfwScore,
       safeScore: safeScore,
@@ -148,10 +149,10 @@ class NSFWUtil {
 
   /// Initializes the model and loads the classification labels.
   Future<void> initialize() async {
-    log('NSFWUtil: Starting initialize...');
+    debugPrint('NSFWUtil: Starting initialize...');
     await _loadModel();
     await _loadLables();
-    log('NSFWUtil: initialize completed.');
+    debugPrint('NSFWUtil: initialize completed.');
   }
 
   /// Runs content inference on a single image file.
@@ -159,12 +160,12 @@ class NSFWUtil {
   /// The inference is run in a separate isolate using `compute` to avoid
   /// blocking the UI thread.
   Future<InferenceScore?> inferenceImage(File imageFile) async {
-    log('NSFWUtil: Starting inferenceImage for file: ${imageFile.path}');
+    debugPrint('NSFWUtil: Starting inferenceImage for file: ${imageFile.path}');
     final args = (file: imageFile, labels: _labels);
 
-    log('NSFWUtil: Starting compute for _inferenceImage...');
+    debugPrint('NSFWUtil: Starting compute for _inferenceImage...');
     final score = await compute(_inferenceImage, args);
-    log('NSFWUtil: compute finished. Score: ${score?.nsfwScore}');
+    debugPrint('NSFWUtil: compute finished. Score: ${score?.nsfwScore}');
 
     return score;
   }
@@ -176,32 +177,34 @@ class NSFWUtil {
     File file, {
     int numberOfFrames = 5,
   }) async {
-    log(
+    debugPrint(
       'NSFWUtil: Starting inferenceVideo for path: ${file.path} with $numberOfFrames frames.',
     );
     final videoFrames = await VideoUtils.getVideoFrames(
       file.path,
       numberOfFrames: numberOfFrames,
     );
-    log('NSFWUtil: Extracted ${videoFrames.length} frames.');
+    debugPrint('NSFWUtil: Extracted ${videoFrames.length} frames.');
 
     final List<InferenceScore?> scores = [];
 
     for (final frame in videoFrames) {
-      log('NSFWUtil: Inferencing frame: ${frame.path}');
+      debugPrint('NSFWUtil: Inferencing frame: ${frame.path}');
       final score = await inferenceImage(frame);
       scores.add(score);
-      log('NSFWUtil: Frame inference score added. NSFW: ${score?.nsfwScore}');
+      debugPrint(
+        'NSFWUtil: Frame inference score added. NSFW: ${score?.nsfwScore}',
+      );
     }
 
-    log('NSFWUtil: inferenceVideo completed.');
+    debugPrint('NSFWUtil: inferenceVideo completed.');
     return scores;
   }
 
   /// Closes the TFLite interpreter and releases resources.
   void dispose() {
-    log('NSFWUtil: Disposing interpreter...');
+    debugPrint('NSFWUtil: Disposing interpreter...');
     _interpreter.close();
-    log('NSFWUtil: Interpreter disposed.');
+    debugPrint('NSFWUtil: Interpreter disposed.');
   }
 }
