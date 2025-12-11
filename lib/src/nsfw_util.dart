@@ -140,8 +140,13 @@ class NSFWUtil {
 
     debugPrint('NSFWUtil: _inferenceImage finished.');
     return InferenceScore(
-      nsfwScore: nsfwScore,
-      safeScore: safeScore,
+      /// uncomment for using the NSFW score
+      // nsfwScore: nsfwScore,
+      // safeScore: safeScore,
+
+      /// for solely relying on the value of `porn`
+      nsfwScore: result5Class[3],
+      safeScore: 1 - result5Class[3],
       labelScores: labelScores,
       frame: args.file,
     );
