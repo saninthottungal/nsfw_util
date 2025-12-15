@@ -46,9 +46,12 @@ class _HomeWidgetState extends State<HomeWidget> {
   Future<void> processImage() async {
     if (mediaPath != null) {
       if (isImage) {
-        score = await helper?.inferenceImage(File(mediaPath!));
+        score = await helper?.inferenceImage(File(mediaPath!), type: inferType);
       } else {
-        videoScores = await helper?.inferenceVideo(File(mediaPath!));
+        videoScores = await helper?.inferenceVideo(
+          File(mediaPath!),
+          type: inferType,
+        );
       }
       setState(() {});
     }
@@ -248,5 +251,3 @@ class __VideoPreviewState extends State<_VideoPreview> {
 extension on InferenceScore {
   bool get isNsfw => nsfwScore > 0.7;
 }
-
-enum InferType { nsfw, porn }

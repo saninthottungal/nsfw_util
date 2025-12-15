@@ -1,0 +1,1 @@
+enum InferType { nsfw, porn }

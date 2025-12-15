@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart';
+import 'package:nsfw_util/nsfw_util.dart';
 import 'package:nsfw_util/src/models/inference_model.dart';
-import 'package:nsfw_util/src/models/inference_score.dart';
 import 'package:nsfw_util/src/utils/asset_utils.dart';
 import 'package:nsfw_util/src/utils/video_utils.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -54,7 +54,9 @@ class NSFWUtil {
     debugPrint('NSFWUtil: _loadLables completed.');
   }
 
-  InferenceScore? _inferenceImage(({File file, List<String> labels}) args) {
+  InferenceScore? _inferenceImage(
+    ({File file, List<String> labels, InferType type}) args,
+  ) {
     debugPrint(
       'NSFWUtil: Starting _inferenceImage for file: ${args.file.path}',
     );
@@ -139,17 +141,23 @@ class NSFWUtil {
     debugPrint('NSFWUtil: Safe score calculated: $safeScore');
 
     debugPrint('NSFWUtil: _inferenceImage finished.');
-    return InferenceScore(
-      /// uncomment for using the NSFW score
-      // nsfwScore: nsfwScore,
-      // safeScore: safeScore,
 
-      /// for solely relying on the value of `porn`
-      nsfwScore: result5Class[3],
-      safeScore: 1 - result5Class[3],
-      labelScores: labelScores,
-      frame: args.file,
-    );
+    if (args.type == .porn) {
+      return InferenceScore(
+        nsfwScore: result5Class[3],
+        safeScore: 1 - result5Class[3],
+        labelScores: labelScores,
+        frame: args.file,
+      );
+    } else {
+      return InferenceScore(
+        nsfwScore: nsfwScore,
+        safeScore: safeScore,
+
+        labelScores: labelScores,
+        frame: args.file,
+      );
+    }
   }
 
   /// Initializes the model and loads the classification labels.
@@ -164,9 +172,12 @@ class NSFWUtil {
   ///
   /// The inference is run in a separate isolate using `compute` to avoid
   /// blocking the UI thread.
-  Future<InferenceScore?> inferenceImage(File imageFile) async {
+  Future<InferenceScore?> inferenceImage(
+    File imageFile, {
+    required InferType type,
+  }) async {
     debugPrint('NSFWUtil: Starting inferenceImage for file: ${imageFile.path}');
-    final args = (file: imageFile, labels: _labels);
+    final args = (file: imageFile, labels: _labels, type: type);
 
     debugPrint('NSFWUtil: Starting compute for _inferenceImage...');
     final score = await compute(_inferenceImage, args);
@@ -180,6 +191,7 @@ class NSFWUtil {
   /// Returns a list of scores, one for each frame sampled.
   Future<List<InferenceScore?>> inferenceVideo(
     File file, {
+    required InferType type,
     int numberOfFrames = 5,
   }) async {
     debugPrint(
@@ -195,7 +207,7 @@ class NSFWUtil {
 
     for (final frame in videoFrames) {
       debugPrint('NSFWUtil: Inferencing frame: ${frame.path}');
-      final score = await inferenceImage(frame);
+      final score = await inferenceImage(frame, type: type);
       scores.add(score);
       debugPrint(
         'NSFWUtil: Frame inference score added. NSFW: ${score?.nsfwScore}',
