@@ -17,6 +17,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   final imagePicker = ImagePicker();
   String? mediaPath;
   bool isImage = true;
+  InferType inferType = .porn;
 
   InferenceScore? score;
   List<InferenceScore?>? videoScores;
@@ -59,6 +60,34 @@ class _HomeWidgetState extends State<HomeWidget> {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            RadioGroup<InferType>(
+              groupValue: inferType,
+              onChanged: (value) {
+                setState(() {
+                  inferType = value ?? .porn;
+                });
+              },
+              child: Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile(
+                      value: InferType.porn,
+                      title: Text('PORN'),
+                      toggleable: true,
+                    ),
+                  ),
+
+                  Expanded(
+                    child: RadioListTile(
+                      value: InferType.nsfw,
+                      title: Text('NSFW'),
+                      toggleable: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -219,3 +248,5 @@ class __VideoPreviewState extends State<_VideoPreview> {
 extension on InferenceScore {
   bool get isNsfw => nsfwScore > 0.7;
 }
+
+enum InferType { nsfw, porn }
