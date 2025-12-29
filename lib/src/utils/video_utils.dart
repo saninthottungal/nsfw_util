@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:video_snapshot_generator/video_snapshot_generator.dart';
 
@@ -10,9 +11,15 @@ class VideoUtils {
     String videoPath, {
     required numberOfFrames,
   }) async {
-    final info = await VideoCompress.getMediaInfo(videoPath);
+    MediaInfo? info;
 
-    final dur = info.duration?.toDouble() ?? 1000;
+    try {
+      info = await VideoCompress.getMediaInfo(videoPath);
+    } on TypeError catch (e) {
+      debugPrint("NSFWUtil: error in getting media info: $e ");
+    }
+
+    final dur = info?.duration?.toDouble() ?? 1000;
     final interval = dur / numberOfFrames;
 
     final positions = List.generate(
