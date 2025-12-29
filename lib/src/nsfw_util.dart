@@ -30,7 +30,23 @@ class NSFWUtil {
       debugPrint('NSFWUtil: Added XNNPackDelegate for Android.');
     }
 
-    _interpreter = await Interpreter.fromAsset(Assets.model, options: options);
+    try {
+      _interpreter = await Interpreter.fromAsset(
+        Assets.model,
+        options: options,
+      );
+    } on ArgumentError {
+      if (Platform.isIOS) {
+        options.addDelegate(XNNPackDelegate());
+        debugPrint('NSFWUtil: Added XNNPackDelegate for IOS.');
+
+        _interpreter = await Interpreter.fromAsset(
+          Assets.model,
+          options: options,
+        );
+      }
+    }
+
     debugPrint('NSFWUtil: Model loaded from asset: ${Assets.model}');
 
     _inputTensor = _interpreter.getInputTensors().first;
